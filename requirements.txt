@@ -1,5 +1,5 @@
 boto3
-pandas
+apache-airflow-providers-fab
 geopandas
 shapely
 h3
@@ -8,3 +8,5 @@ pytest
 s3fs
 jupyter
 polars>=1.0.0
+dagster
+dagster-webserver
