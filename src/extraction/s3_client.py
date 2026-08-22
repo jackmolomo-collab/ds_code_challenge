@@ -3,11 +3,7 @@ import boto3
 import pandas as pd
 from botocore import UNSIGNED
 from botocore.config import Config
-
-try:
-    from src.extraction.config import config
-except ModuleNotFoundError:
-    from config import config
+from src.extraction.config import config
 
 
 class S3Client:
@@ -33,20 +29,10 @@ class S3Client:
             **kwargs
         )
 
-    def select_json(self, key, expression):
-        response = self.client.select_object_content(
-            Bucket=self.bucket,
-            Key=key,
-            Expression=expression,
-            ExpressionType="SQL",
-            InputSerialization={"JSON": {"Type": "DOCUMENT"}},
-            OutputSerialization={"JSON": {}}
-        )
 
-        records = []
+    def read_geojson(self, key):
+        response = self.client.get_object(
+        Bucket=self.bucket,
+        Key=key)
 
-        for event in response["Payload"]:
-            if "Records" in event:
-                records.append(event["Records"]["Payload"])
-
-        return b"".join(records)
+        return response["Body"].read()
