@@ -4,23 +4,23 @@ import boto3
 import pandas as pd
 from botocore import UNSIGNED
 from botocore.config import Config
+import yaml
 
 
 class S3Client:
     """Client for reading public City of Cape Town S3 objects."""
 
-    def __init__(
-        self,
-        bucket: str = "cct-ds-code-challenge-input-data",
-        region_name: str = "af-south-1",
-    ):
-        self.bucket = bucket
+    def __init__(self):
+        configpath = "config/aws.yaml"
+        with open(configpath, "r") as file:
+            aws_config = yaml.safe_load(file)
 
-        self.client = boto3.client(
-            "s3",
-            region_name=region_name,
-            config=Config(signature_version=UNSIGNED),
-        )
+            self.bucket = aws_config["bucket"]
+            self.region = aws_config["region"] 
+            self.client = boto3.client("s3",region_name=self.region, config=Config(signature_version=UNSIGNED))
+        
+
+  
 
     def read_csv(self, key: str, **kwargs) -> pd.DataFrame:
         """Read a CSV or compressed CSV from the public S3 bucket."""
