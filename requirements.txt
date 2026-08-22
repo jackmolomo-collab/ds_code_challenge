@@ -6,3 +6,4 @@ h3
 pyyaml
 pytest
 s3fs
+jupyter
