@@ -1,0 +1,17 @@
+h3_polygon:
+  required_columns:
+    - index
+    - centroid_lat
+    - centroid_lon
+    - geometry
+
+  geometry_type:
+    - Polygon
+
+  crs: EPSG:4326
+
+  h3_resolution: 8
+
+  thresholds:
+    warning: 0.95
+    failure: 0.90
