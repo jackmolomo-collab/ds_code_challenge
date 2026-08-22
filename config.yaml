@@ -1,0 +1,14 @@
+aws:
+  region: af-south-1
+  bucket: cct-ds-code-challenge-input-data
+
+sources:
+  service_requests: sr.csv.gz
+  service_requests_h3: sr_hex.csv.gz
+  service_requests_truncated: sr_hex_truncated.csv
+  hex8: city-hex-polygons-8.geojson
+  hex8_10: city-hex-polygons-8-10.geojson
+
+processing:
+  h3_resolution: 8
+  join_error_threshold: 0.05
