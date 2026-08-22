@@ -1,17 +1,26 @@
-h3_polygon:
-  required_columns:
-    - index
-    - centroid_lat
-    - centroid_lon
-    - geometry
+aws:
+  region: af-south-1
+  bucket: cct-ds-code-challenge-input-data
 
-  geometry_type:
-    - Polygon
+sources:
+  service_requests:
+    key: sr.csv.gz
+    format: csv
+    compression: gzip
 
-  crs: EPSG:4326
+  service_requests_hex:
+    key: sr_hex.csv.gz
+    format: csv
+    compression: gzip
 
-  h3_resolution: 8
+  service_requests_hex_truncated:
+    key: sr_hex_truncated.csv
+    format: csv
 
-  thresholds:
-    warning: 0.95
-    failure: 0.90
+  hex_polygons_8:
+    key: city-hex-polygons-8.geojson
+    format: geojson
+
+  hex_polygons_8_10:
+    key: city-hex-polygons-8-10.geojson
+    format: geojson
