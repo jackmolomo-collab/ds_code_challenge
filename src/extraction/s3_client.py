@@ -1,6 +1,6 @@
 import io
 import boto3
-import pandas as pd
+import polars  as pd
 from botocore import UNSIGNED
 from botocore.config import Config
 from src.extraction.config import config
