@@ -1,0 +1,5 @@
+aws:
+  region: af-south-1
+
+s3:
+  bucket: cct-ds-code-challenge-input-data
