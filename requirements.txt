@@ -7,3 +7,4 @@ pyyaml
 pytest
 s3fs
 jupyter
+polars>=1.0.0
