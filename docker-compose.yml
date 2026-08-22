@@ -1,0 +1,73 @@
+services:
+
+  airflow-init:
+    image: apache/airflow:3.1.0
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./validation:/opt/airflow/validation
+      - ./transformations:/opt/airflow/transformations
+      - ./config:/opt/airflow/config
+      - ./output:/opt/airflow/output
+
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create
+          --username admin
+          --password admin
+          --firstname Admin
+          --lastname User
+          --role Admin
+          --email admin@example.com
+      "
+
+  airflow-webserver:
+    image: apache/airflow:3.1.0
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./validation:/opt/airflow/validation
+      - ./transformations:/opt/airflow/transformations
+      - ./config:/opt/airflow/config
+      - ./output:/opt/airflow/output
+
+    ports:
+      - "8080:8080"
+
+    command: api-server
+
+  airflow-scheduler:
+    image: apache/airflow:3.1.0
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./validation:/opt/airflow/validation
+      - ./transformations:/opt/airflow/transformations
+      - ./config:/opt/airflow/config
+      - ./output:/opt/airflow/output
+
+    command: scheduler
