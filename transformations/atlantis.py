@@ -1,0 +1,16 @@
+class AtlantisProcessor:
+    
+    def identify_suburbs(self, ...):
+        ...
+
+    def calculate_centroids(self, ...):
+        ...
+
+    def filter_requests(self, ...):
+        ...
+
+    def enrich_wind(self, ...):
+        ...
+
+    def anonymise(self, ...):
+        ...
