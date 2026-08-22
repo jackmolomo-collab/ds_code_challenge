@@ -1,0 +1,6 @@
+boto3
+pandas
+geopandas
+shapely
+pyyaml
+pytest
