@@ -3,7 +3,10 @@ import boto3
 import pandas as pd
 from botocore import UNSIGNED
 from botocore.config import Config
-from src.config import config
+# from src.extraction.config import config
+# Safe and decoupled. Looks directly inside the current folder!
+import config
+
 
 
 class S3Client:
@@ -28,3 +31,21 @@ class S3Client:
             compression="gzip",
             **kwargs
         )
+
+    # def select_json(self, key, expression):
+    #     response = self.client.select_object_content(
+    #         Bucket=self.bucket,
+    #         Key=key,
+    #         Expression=expression,
+    #         ExpressionType="SQL",
+    #         InputSerialization={"JSON": {"Type": "DOCUMENT"}},
+    #         OutputSerialization={"JSON": {}}
+    #     )
+
+    #     records = []
+
+    #     for event in response["Payload"]:
+    #         if "Records" in event:
+    #             records.append(event["Records"]["Payload"])
+
+    #     return b"".join(records)
