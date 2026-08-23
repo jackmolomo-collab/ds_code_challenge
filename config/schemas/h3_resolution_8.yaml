@@ -1,0 +1,25 @@
+h3_index:
+    type: string
+    required: true
+
+centroid_lat:
+    type: float
+    required: true
+    min: -90
+    max: 90
+
+centroid_lon:
+    type: float
+    required: true
+    min: -180
+    max: 180
+
+resolution:
+    type: integer
+    required: true
+    allowed_values:
+        - 8
+
+geometry:
+    type: struct
+    required: true
