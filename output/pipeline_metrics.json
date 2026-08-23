@@ -6,30 +6,30 @@
     {
       "operation": "extract_h3",
       "status": "success",
-      "duration_seconds": 1.1621,
+      "duration_seconds": 13.7007,
       "records": 3832
     },
     {
       "operation": "create_h3_dataframe",
       "status": "success",
-      "duration_seconds": 0.4313,
+      "duration_seconds": 0.6017,
       "records": 3832
     },
     {
       "operation": "validate_h3",
       "status": "success",
-      "duration_seconds": 0.0041,
+      "duration_seconds": 0.3934,
       "records": 3832
     },
     {
       "operation": "write_schema_result",
       "status": "success",
-      "duration_seconds": 0.0157
+      "duration_seconds": 0.0135
     },
     {
       "operation": "write_h3_dataframe",
       "status": "success",
-      "duration_seconds": 1.3264
+      "duration_seconds": 1.7131
     }
   ]
 }
