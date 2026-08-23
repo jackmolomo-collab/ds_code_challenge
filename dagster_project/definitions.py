@@ -1,32 +1,26 @@
-from dagster import Definitions, op, job, Config
+from dagster import op, job
 
-from src.extraction.s3_client import S3Client
 from validation.h3_validator import H3Validator
 from outputs.result_writer import ResultWriter
 
 
-class ChallengeConfig(Config):
-    input_file: str = "city-hex-polygons-8-10.geojson"
+@op
+def extract():
+
+    return "city-hex-polygons-8-10.geojson"
 
 
 @op
-def extract(config: ChallengeConfig):
-    s3 = S3Client()
+def validate(source):
 
-    geojson = s3.read_geojson(config.input_file)
-
-    return geojson
-
-
-@op
-def validate(geojson):
     validator = H3Validator()
 
-    return validator.validate(geojson)
+    return validator.validate(source)
 
 
 @op
 def write_result(result):
+
     writer = ResultWriter(
         output_dir="/opt/dagster/output"
     )
@@ -43,15 +37,9 @@ def write_result(result):
 
 @job
 def city_ds_challenge():
-    write_result(
-        validate(
-            extract()
-        )
-    )
 
+    source = extract()
 
-defs = Definitions(
-    jobs=[
-        city_ds_challenge
-    ]
-)
+    result = validate(source)
+
+    write_result(result)
