@@ -1,0 +1,65 @@
+dataset: service_requests
+
+version: 1
+
+columns:
+
+  notification_number:
+    type: Int64
+    nullable: false
+
+  reference_number:
+    type: Float64
+    nullable: true
+
+  creation_timestamp:
+    type: String
+    nullable: false
+
+  completion_timestamp:
+    type: String
+    nullable: true
+
+  directorate:
+    type: String
+    nullable: true
+
+  department:
+    type: String
+    nullable: true
+
+  branch:
+    type: String
+    nullable: true
+
+  section:
+    type: String
+    nullable: true
+
+  code_group:
+    type: String
+    nullable: false
+
+  code:
+    type: String
+    nullable: false
+
+  cause_code_group:
+    type: String
+    nullable: true
+
+  cause_code:
+    type: String
+    nullable: true
+
+  official_suburb:
+    type: String
+    nullable: true
+
+  latitude:
+    type: Float64
+    nullable: true
+
+  longitude:
+    type: Float64
+    nullable: true

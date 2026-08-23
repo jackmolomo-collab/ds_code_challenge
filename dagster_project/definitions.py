@@ -1,5 +1,7 @@
-from dagster import op, job
+from dagster import Definitions, op, job
 import time
+
+from dagster_project.assets.task1_h3 import task1_h3
 
 from src.extraction.h3_extractor import H3Extractor
 from src.transformations.h3_dataframe import H3DataFrame
@@ -10,12 +12,18 @@ from src.monitoring.pipeline_metrics import PipelineMetrics
 
 
 SOURCE_KEY = "city-hex-polygons-8.geojson"
-SCHEMA_PATH = "/opt/dagster/config/schemas/h3_resolution_8.yaml"
+
+SCHEMA_PATH = (
+    "/opt/dagster/config"
+    "/schemas"
+    "/h3_resolution_8.yaml"
+)
+
 OUTPUT_DIR = "/opt/dagster/output"
 
 
 # ============================================================
-# EXTRACT
+# EXTRACT H3 GEOJSON
 # ============================================================
 
 @op
@@ -33,39 +41,39 @@ def extract_h3():
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "extract_h3",
             "status": "success",
             "duration_seconds": duration,
-            "records": len(features)
+            "records": len(features),
         }
 
         return {
             "data": features,
-            "metric": metric
+            "metric": metric,
         }
 
     except Exception:
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "extract_h3",
             "status": "failed",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         raise
 
 
 # ============================================================
-# TRANSFORMATION
+# CREATE H3 DATAFRAME
 # ============================================================
 
 @op
@@ -83,42 +91,42 @@ def create_h3_dataframe(extract_result):
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "create_h3_dataframe",
             "status": "success",
             "duration_seconds": duration,
-            "records": len(h3_df)
+            "records": len(h3_df),
         }
 
         return {
             "data": h3_df,
             "metrics": [
                 extract_result["metric"],
-                metric
-            ]
+                metric,
+            ],
         }
 
     except Exception:
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "create_h3_dataframe",
             "status": "failed",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         raise
 
 
 # ============================================================
-# H3 VALIDATION
+# VALIDATE H3
 # ============================================================
 
 @op
@@ -136,32 +144,35 @@ def validate_h3(data_result):
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "validate_h3",
             "status": "success",
             "duration_seconds": duration,
-            "records": len(validated_h3_df)
+            "records": len(validated_h3_df),
         }
 
         return {
             "data": validated_h3_df,
-            "metrics": data_result["metrics"] + [metric]
+            "metrics": (
+                data_result["metrics"]
+                + [metric]
+            ),
         }
 
     except Exception:
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "validate_h3",
             "status": "failed",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         raise
@@ -188,31 +199,34 @@ def validate_schema(validation_result):
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "validate_schema",
             "status": "success",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         return {
             "data": schema_result,
-            "metrics": validation_result["metrics"] + [metric]
+            "metrics": (
+                validation_result["metrics"]
+                + [metric]
+            ),
         }
 
     except Exception:
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "validate_schema",
             "status": "failed",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         raise
@@ -235,36 +249,39 @@ def write_h3_dataframe(validation_result):
 
         output_path = writer.write_dataframe(
             validation_result["data"],
-            "h3_resolution_8.json"
+            "h3_resolution_8.json",
         )
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "write_h3_dataframe",
             "status": "success",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         return {
             "output_path": output_path,
-            "metrics": validation_result["metrics"] + [metric]
+            "metrics": (
+                validation_result["metrics"]
+                + [metric]
+            ),
         }
 
     except Exception:
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "write_h3_dataframe",
             "status": "failed",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         raise
@@ -277,7 +294,7 @@ def write_h3_dataframe(validation_result):
 @op
 def write_schema_result(
     schema_result,
-    validation_result
+    validation_result,
 ):
 
     start = time.perf_counter()
@@ -290,36 +307,39 @@ def write_schema_result(
 
         output_path = writer.write_json(
             schema_result["data"],
-            "schema_validation.json"
+            "schema_validation.json",
         )
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "write_schema_result",
             "status": "success",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         return {
             "output_path": output_path,
-            "metrics": validation_result["metrics"] + [metric]
+            "metrics": (
+                validation_result["metrics"]
+                + [metric]
+            ),
         }
 
     except Exception:
 
         duration = round(
             time.perf_counter() - start,
-            4
+            4,
         )
 
         metric = {
             "operation": "write_schema_result",
             "status": "failed",
-            "duration_seconds": duration
+            "duration_seconds": duration,
         }
 
         raise
@@ -332,65 +352,61 @@ def write_schema_result(
 @op
 def write_pipeline_metrics(
     h3_write_result,
-    schema_write_result
+    schema_write_result,
 ):
 
     pipeline_start = time.perf_counter()
-
-    metrics = PipelineMetrics(
-        OUTPUT_DIR
-    )
-
- 
 
     pipeline_metrics = list(
         schema_write_result["metrics"]
     )
 
-    h3_write_metric = h3_write_result["metrics"][-1]
+    h3_write_metric = (
+        h3_write_result["metrics"][-1]
+    )
 
     pipeline_metrics.append(
         h3_write_metric
     )
 
-    metrics.metrics = pipeline_metrics
-
     total_duration = round(
-        time.perf_counter() - pipeline_start,
-        4
+        time.perf_counter()
+        - pipeline_start,
+        4,
     )
 
     monitoring_result = {
         "pipeline": "city_pipeline",
         "status": "success",
         "total_duration_seconds": total_duration,
-        "steps": pipeline_metrics
+        "steps": pipeline_metrics,
     }
 
     import json
     from pathlib import Path
 
-    output_path = Path(
-        OUTPUT_DIR
-    ) / "pipeline_metrics.json"
+    output_path = (
+        Path(OUTPUT_DIR)
+        / "pipeline_metrics.json"
+    )
 
     with open(
         output_path,
         "w",
-        encoding="utf-8"
+        encoding="utf-8",
     ) as file:
 
         json.dump(
             monitoring_result,
             file,
-            indent=2
+            indent=2,
         )
 
     return str(output_path)
 
 
 # ============================================================
-# DAGSTER JOB
+# EXISTING DAGSTER JOB
 # ============================================================
 
 @job
@@ -416,10 +432,34 @@ def city_pipeline():
 
     schema_write_result = write_schema_result(
         schema_result,
-        validation_result
+        validation_result,
     )
 
     write_pipeline_metrics(
         h3_write_result,
-        schema_write_result
+        schema_write_result,
     )
+
+
+# ============================================================
+# DAGSTER DEFINITIONS
+# ============================================================
+#
+# IMPORTANT:
+#
+# city_pipeline is the existing JOB.
+#
+# task1_h3 is the new ASSET.
+#
+# They are deliberately registered separately.
+#
+# ============================================================
+
+defs = Definitions(
+    jobs=[
+        city_pipeline,
+    ],
+    assets=[
+        task1_h3,
+    ],
+)

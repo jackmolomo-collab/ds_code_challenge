@@ -1,18 +1,15 @@
 services:
+
   dagster:
     build:
       context: .
-      dockerfile: Dockerfile
+
     ports:
       - "3000:3000"
+
     volumes:
       - ./dagster_project:/opt/dagster/dagster_project
       - ./src:/opt/dagster/src
-      - ./validation:/opt/dagster/validation
-      - ./outputs:/opt/dagster/outputs
-      - ./output:/opt/dagster/output
       - ./config:/opt/dagster/config
-      - ./data:/opt/dagster/data
-    environment:
-      DAGSTER_HOME: /opt/dagster/dagster_home
-    restart: unless-stopped
+      - ./output:/opt/dagster/output
+      - ./dagster_home:/opt/dagster/dagster_home
