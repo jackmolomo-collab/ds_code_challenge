@@ -54,7 +54,7 @@ def write_h3_dataframe(validated_h3_df):
 
 
 @job
-def h3_pipeline():
+def city_pipeline():
 
     features = extract_h3()
 
