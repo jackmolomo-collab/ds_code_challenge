@@ -14,8 +14,4 @@ class H3Extractor:
             self.s3.read_geojson(key)
         )
 
-        return [
-            feature
-            for feature in data["features"]
-            if feature["properties"]["resolution"] == 8
-        ]
+        return data["features"]

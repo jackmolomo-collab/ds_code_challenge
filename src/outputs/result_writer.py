@@ -1,17 +1,11 @@
 import os
 import json
-import pandas as pd
 
 
 class ResultWriter:
 
     def __init__(self, output_dir):
         self.output_dir = output_dir
-
-        os.makedirs(
-            self.output_dir,
-            exist_ok=True
-        )
 
     def write_json(self, data, filename):
 
@@ -42,10 +36,22 @@ class ResultWriter:
             filename
         )
 
-        dataframe.to_json(
+        records = dataframe.to_dicts()
+
+        with open(
             output_file,
-            orient="records",
-            indent=4
-        )
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                records,
+                f,
+                indent=4,
+                default=str
+            )
+
+        print(f"Output written: {output_file}")
+        print(f"Records written: {len(records)}")
 
         return output_file
