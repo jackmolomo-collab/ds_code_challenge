@@ -19,15 +19,40 @@ class SchemaValidator:
         with open(
             self.schema_path,
             "r",
-            encoding="utf-8"
+            encoding="utf-8",
         ) as file:
 
             self.schema = yaml.safe_load(file)
 
+        # Support both schema formats:
+        #
+        # Format 1:
+        #
+        # h3_index:
+        #     type: string
+        #
+        # Format 2:
+        #
+        # dataset: service_requests
+        # version: 1
+        # columns:
+        #     notification_number:
+        #         type: integer
+
+        if "columns" in self.schema:
+
+            self.columns_schema = (
+                self.schema["columns"]
+            )
+
+        else:
+
+            self.columns_schema = self.schema
+
     def check_column(
         self,
         dataframe,
-        column
+        column,
     ):
 
         return column in dataframe.columns
@@ -36,24 +61,36 @@ class SchemaValidator:
         self,
         dataframe,
         column,
-        expected_type
+        expected_type,
     ):
+
+        if expected_type not in self.TYPE_MAPPING:
+
+            raise ValueError(
+                f"Unsupported schema type: "
+                f"{expected_type}"
+            )
 
         actual_type = dataframe.schema[column]
 
-        expected_polars_type = self.TYPE_MAPPING[
-            expected_type
-        ]
+        expected_polars_type = (
+            self.TYPE_MAPPING[
+                expected_type
+            ]
+        )
 
         return actual_type == expected_polars_type
 
     def check_required(
         self,
         dataframe,
-        column
+        column,
     ):
 
-        null_count = dataframe[column].null_count()
+        null_count = (
+            dataframe[column]
+            .null_count()
+        )
 
         return null_count == 0
 
@@ -61,29 +98,40 @@ class SchemaValidator:
         self,
         dataframe,
         column,
-        minimum
+        minimum,
     ):
 
-        return dataframe[column].min() >= minimum
+        value = dataframe[column].min()
+
+        if value is None:
+            return False
+
+        return value >= minimum
 
     def check_max(
         self,
         dataframe,
         column,
-        maximum
+        maximum,
     ):
 
-        return dataframe[column].max() <= maximum
+        value = dataframe[column].max()
+
+        if value is None:
+            return False
+
+        return value <= maximum
 
     def check_allowed_values(
         self,
         dataframe,
         column,
-        allowed_values
+        allowed_values,
     ):
 
         values = (
             dataframe[column]
+            .drop_nulls()
             .unique()
             .to_list()
         )
@@ -100,24 +148,28 @@ class SchemaValidator:
 
         failures = []
 
-        # Actual schema from the dataframe
         actual_schema = dataframe.schema
 
         print("Actual schema:")
         print(actual_schema)
 
-        # Loop through expected schema
-        for column, rules in self.schema.items():
+        # -----------------------------------------------------
+        # Validate every configured dataframe column
+        # -----------------------------------------------------
 
-            # --------------------------------
+        for column, rules in (
+            self.columns_schema.items()
+        ):
+
+            # -------------------------------------------------
             # 1. Column existence
-            # --------------------------------
+            # -------------------------------------------------
 
             total_checks += 1
 
             if self.check_column(
                 dataframe,
-                column
+                column,
             ):
 
                 passed_checks += 1
@@ -128,70 +180,79 @@ class SchemaValidator:
                     f"Missing column: {column}"
                 )
 
-                # Cannot perform the remaining
-                # checks for a missing column
+                # Cannot perform further
+                # validation for this column.
                 continue
 
-            # --------------------------------
+            # -------------------------------------------------
             # 2. Data type
-            # --------------------------------
+            # -------------------------------------------------
 
             total_checks += 1
+
+            expected_type = rules.get(
+                "type"
+            )
 
             if self.check_type(
                 dataframe,
                 column,
-                rules["type"]
+                expected_type,
             ):
 
                 passed_checks += 1
 
             else:
 
-                actual_type = actual_schema[column]
+                actual_type = (
+                    actual_schema[column]
+                )
 
-                expected_type = self.TYPE_MAPPING[
-                    rules["type"]
-                ]
+                expected_polars_type = (
+                    self.TYPE_MAPPING[
+                        expected_type
+                    ]
+                )
 
                 failures.append(
                     f"{column}: expected "
-                    f"{expected_type}, "
+                    f"{expected_polars_type}, "
                     f"got {actual_type}"
                 )
 
-            # --------------------------------
-            # 3. Required / null check
-            # --------------------------------
+            # -------------------------------------------------
+            # 3. Required / null validation
+            # -------------------------------------------------
 
             if rules.get(
                 "required",
-                False
+                False,
             ):
 
                 total_checks += 1
 
                 if self.check_required(
                     dataframe,
-                    column
+                    column,
                 ):
 
                     passed_checks += 1
 
                 else:
 
-                    null_count = dataframe[
-                        column
-                    ].null_count()
+                    null_count = (
+                        dataframe[column]
+                        .null_count()
+                    )
 
                     failures.append(
                         f"{column}: "
                         f"{null_count} null values"
                     )
 
-            # --------------------------------
+            # -------------------------------------------------
             # 4. Minimum value
-            # --------------------------------
+            # -------------------------------------------------
 
             if "min" in rules:
 
@@ -202,7 +263,7 @@ class SchemaValidator:
                 if self.check_min(
                     dataframe,
                     column,
-                    minimum
+                    minimum,
                 ):
 
                     passed_checks += 1
@@ -211,12 +272,13 @@ class SchemaValidator:
 
                     failures.append(
                         f"{column}: values "
-                        f"below minimum {minimum}"
+                        f"below minimum "
+                        f"{minimum}"
                     )
 
-            # --------------------------------
+            # -------------------------------------------------
             # 5. Maximum value
-            # --------------------------------
+            # -------------------------------------------------
 
             if "max" in rules:
 
@@ -227,7 +289,7 @@ class SchemaValidator:
                 if self.check_max(
                     dataframe,
                     column,
-                    maximum
+                    maximum,
                 ):
 
                     passed_checks += 1
@@ -236,25 +298,26 @@ class SchemaValidator:
 
                     failures.append(
                         f"{column}: values "
-                        f"above maximum {maximum}"
+                        f"above maximum "
+                        f"{maximum}"
                     )
 
-            # --------------------------------
+            # -------------------------------------------------
             # 6. Allowed values
-            # --------------------------------
+            # -------------------------------------------------
 
             if "allowed_values" in rules:
 
                 total_checks += 1
 
-                allowed_values = rules[
-                    "allowed_values"
-                ]
+                allowed_values = (
+                    rules["allowed_values"]
+                )
 
                 if self.check_allowed_values(
                     dataframe,
                     column,
-                    allowed_values
+                    allowed_values,
                 ):
 
                     passed_checks += 1
@@ -267,21 +330,30 @@ class SchemaValidator:
                         f"{allowed_values}"
                     )
 
-        # --------------------------------
+        # -----------------------------------------------------
         # Conformance score
-        # --------------------------------
+        # -----------------------------------------------------
 
         score = (
             passed_checks / total_checks
             if total_checks
-            else 0
+            else 0.0
         )
 
-        passed = score >= 0.95
+        # Non-binary threshold required
+        # by the assessment.
+        threshold = 0.95
+
+        passed = score >= threshold
 
         print(
             f"Schema validation score: "
             f"{score:.4f}"
+        )
+
+        print(
+            f"Schema validation threshold: "
+            f"{threshold:.2%}"
         )
 
         print(
@@ -291,12 +363,15 @@ class SchemaValidator:
 
         print(
             f"Checks passed: "
-            f"{passed_checks}/{total_checks}"
+            f"{passed_checks}/"
+            f"{total_checks}"
         )
 
         if failures:
 
-            print("Schema validation failures:")
+            print(
+                "Schema validation failures:"
+            )
 
             for failure in failures:
 
@@ -306,6 +381,7 @@ class SchemaValidator:
 
         return {
             "score": score,
+            "threshold": threshold,
             "passed_checks": passed_checks,
             "total_checks": total_checks,
             "failures": failures,
