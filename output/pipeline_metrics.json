@@ -1,0 +1,35 @@
+{
+  "pipeline": "city_pipeline",
+  "status": "success",
+  "total_duration_seconds": 0.0,
+  "steps": [
+    {
+      "operation": "extract_h3",
+      "status": "success",
+      "duration_seconds": 1.1621,
+      "records": 3832
+    },
+    {
+      "operation": "create_h3_dataframe",
+      "status": "success",
+      "duration_seconds": 0.4313,
+      "records": 3832
+    },
+    {
+      "operation": "validate_h3",
+      "status": "success",
+      "duration_seconds": 0.0041,
+      "records": 3832
+    },
+    {
+      "operation": "write_schema_result",
+      "status": "success",
+      "duration_seconds": 0.0157
+    },
+    {
+      "operation": "write_h3_dataframe",
+      "status": "success",
+      "duration_seconds": 1.3264
+    }
+  ]
+}
