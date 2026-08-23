@@ -1,0 +1,8 @@
+{
+    "source": "city-hex-polygons-8-10.geojson",
+    "total": 203840,
+    "valid": 3832,
+    "invalid": 200008,
+    "score": 0.01879905808477237,
+    "passed": false
+}
