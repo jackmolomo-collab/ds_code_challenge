@@ -30,7 +30,7 @@ def task1_h3():
     pipeline_start = time.perf_counter()
 
     # ---------------------------------------------------------
-    # Configuration
+    # Confi
     # ---------------------------------------------------------
 
     OUTPUT_DIR.mkdir(
