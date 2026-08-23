@@ -1,4 +1,5 @@
 import json
+
 from src.extraction.s3_client import S3Client
 
 

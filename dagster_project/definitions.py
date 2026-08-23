@@ -1,45 +1,71 @@
 from dagster import op, job
 
-from validation.h3_validator import H3Validator
-from outputs.result_writer import ResultWriter
+from src.extraction.h3_extractor import H3Extractor
+from src.transformations.h3_dataframe import H3DataFrame
+from src.validation.h3_validator import H3Validator
+from src.outputs.result_writer import ResultWriter
+
+
+SOURCE_KEY = "input/h3_data.geojson"
+OUTPUT_DIR = "/opt/dagster/output"
 
 
 @op
-def extract():
+def extract_h3():
 
-    return "city-hex-polygons-8-10.geojson"
+    extractor = H3Extractor()
+
+    return extractor.extract_resolution_8(
+        SOURCE_KEY
+    )
 
 
 @op
-def validate(source):
+def create_h3_dataframe(features):
+
+    transformer = H3DataFrame()
+
+    return transformer.create(
+        features
+    )
+
+
+@op
+def validate(h3_df):
 
     validator = H3Validator()
 
-    return validator.validate(source)
+    return validator.validate(
+        h3_df
+    )
 
 
 @op
-def write_result(result):
+def write_h3_dataframe(validated_h3_df):
 
     writer = ResultWriter(
-        output_dir="/opt/dagster/output"
+        OUTPUT_DIR
     )
 
-    output_file = writer.write_json(
-        result,
-        "validation_result.json"
+    return writer.write_dataframe(
+        validated_h3_df,
+        "h3_resolution_8.json"
     )
-
-    print(f"Output written to: {output_file}")
-
-    return output_file
 
 
 @job
-def city_ds_challenge():
+def h3_pipeline():
 
-    source = extract()
+    features = extract_h3()
 
-    result = validate(source)
+    h3_df = create_h3_dataframe(
+        features
+    )
 
-    write_result(result)
+    validated_h3_df = validate(
+        h3_df
+    )
+
+    write_h3_dataframe(
+        validated_h3_df
+    )
