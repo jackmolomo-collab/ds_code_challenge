@@ -6,7 +6,7 @@ from src.validation.h3_validator import H3Validator
 from src.outputs.result_writer import ResultWriter
 
 
-SOURCE_KEY = "input/h3_data.geojson"
+SOURCE_KEY = "city-hex-polygons-8.geojson"
 OUTPUT_DIR = "/opt/dagster/output"
 
 
