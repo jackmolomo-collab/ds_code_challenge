@@ -17,11 +17,21 @@ from dagster_project.assets.task2_service_requests import (
     task2_service_requests,
 )
 
+# ============================================================
+# TASK 3 ASSET
+# ============================================================
+
+
+from dagster_project.assets.task5_1_atlantis_requests import (
+    task5_1_atlantis_requests,
+)
+    
 
 # ============================================================
 # TASK 1 COMPONENTS
 # ============================================================
 
+from dagster_project.assets.task5_1_atlantis_requests import task5_1_atlantis_requests
 from src.extraction.h3_extractor import H3Extractor
 from src.transformations.h3_dataframe import H3DataFrame
 from src.validation.h3_validator import H3Validator
@@ -484,6 +494,7 @@ defs = Definitions(
     assets=[
         task1_h3,
         task2_service_requests,
+        task5_1_atlantis_requests,
     ],
 )
 
