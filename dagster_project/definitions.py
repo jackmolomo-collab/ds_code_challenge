@@ -1,15 +1,37 @@
 from dagster import Definitions, op, job
 import time
 
+
+# ============================================================
+# TASK 1 ASSET
+# ============================================================
+
 from dagster_project.assets.task1_h3 import task1_h3
+
+
+# ============================================================
+# TASK 2 ASSET
+# ============================================================
+
+from dagster_project.assets.task2_service_requests import (
+    task2_service_requests,
+)
+
+
+# ============================================================
+# TASK 1 COMPONENTS
+# ============================================================
 
 from src.extraction.h3_extractor import H3Extractor
 from src.transformations.h3_dataframe import H3DataFrame
 from src.validation.h3_validator import H3Validator
 from src.validation.schema_validator import SchemaValidator
 from src.outputs.result_writer import ResultWriter
-from src.monitoring.pipeline_metrics import PipelineMetrics
 
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
 
 SOURCE_KEY = "city-hex-polygons-8.geojson"
 
@@ -23,6 +45,7 @@ OUTPUT_DIR = "/opt/dagster/output"
 
 
 # ============================================================
+# TASK 1
 # EXTRACT H3 GEOJSON
 # ============================================================
 
@@ -73,6 +96,7 @@ def extract_h3():
 
 
 # ============================================================
+# TASK 1
 # CREATE H3 DATAFRAME
 # ============================================================
 
@@ -126,6 +150,7 @@ def create_h3_dataframe(extract_result):
 
 
 # ============================================================
+# TASK 1
 # VALIDATE H3
 # ============================================================
 
@@ -179,6 +204,7 @@ def validate_h3(data_result):
 
 
 # ============================================================
+# TASK 1
 # SCHEMA VALIDATION
 # ============================================================
 
@@ -233,6 +259,7 @@ def validate_schema(validation_result):
 
 
 # ============================================================
+# TASK 1
 # WRITE H3 DATAFRAME
 # ============================================================
 
@@ -288,6 +315,7 @@ def write_h3_dataframe(validation_result):
 
 
 # ============================================================
+# TASK 1
 # WRITE SCHEMA RESULT
 # ============================================================
 
@@ -346,6 +374,7 @@ def write_schema_result(
 
 
 # ============================================================
+# TASK 1
 # PIPELINE MONITORING
 # ============================================================
 
@@ -406,6 +435,7 @@ def write_pipeline_metrics(
 
 
 # ============================================================
+# TASK 1
 # EXISTING DAGSTER JOB
 # ============================================================
 
@@ -444,22 +474,16 @@ def city_pipeline():
 # ============================================================
 # DAGSTER DEFINITIONS
 # ============================================================
-#
-# IMPORTANT:
-#
-# city_pipeline is the existing JOB.
-#
-# task1_h3 is the new ASSET.
-#
-# They are deliberately registered separately.
-#
-# ============================================================
 
 defs = Definitions(
+
     jobs=[
         city_pipeline,
     ],
+
     assets=[
         task1_h3,
+        task2_service_requests,
     ],
 )
+

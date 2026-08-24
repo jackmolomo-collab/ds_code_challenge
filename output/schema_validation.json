@@ -1,5 +1,6 @@
 {
     "score": 1.0,
+    "threshold": 0.95,
     "passed_checks": 20,
     "total_checks": 20,
     "failures": [],
