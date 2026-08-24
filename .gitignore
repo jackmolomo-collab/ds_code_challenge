@@ -11,3 +11,8 @@ logs/
 
 .vscode/
 .idea/
+# Generated pipeline outputs
+output/*.json
+output/*.csv
+output/*.parquet
+output/*.gz
