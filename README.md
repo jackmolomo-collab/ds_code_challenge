@@ -1,6 +1,6 @@
 # City of Cape Town Data Engineering Challenge
 
-## Overview
+## Overview 
 
 This project implements the **Data Engineering tasks** of the City of Cape Town challenge.
 
