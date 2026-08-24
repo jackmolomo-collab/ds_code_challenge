@@ -22,8 +22,8 @@ from dagster_project.assets.task2_service_requests import (
 # ============================================================
 
 
-from dagster_project.assets.task3_some_asset import (
-    task3_some_asset,
+from dagster_project.assets.task5_1_atlantis_requests import (
+    task5_1_atlantis_requests,
 )
     
 
