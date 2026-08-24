@@ -1,14 +1,27 @@
-import time
 from pathlib import Path
+import time
 
-import polars as pl
 from dagster import asset
 
-from src.extraction.s3_client import S3Client
+from src.extraction.h3_extractor import H3Extractor
+from src.transformations.h3_dataframe import H3DataFrame
+from src.validation.h3_validator import H3Validator
 from src.validation.schema_validator import SchemaValidator
-from src.transformations.h3_assignment import H3Assignment
-from src.monitoring.pipeline_metrics import PipelineMetrics
 from src.outputs.result_writer import ResultWriter
+from src.monitoring.pipeline_metrics import PipelineMetrics
+
+
+SOURCE_KEY = "city-hex-polygons-8-10.geojson"
+SCHEMA_PATH = Path(
+    "/opt/dagster/config/schemas/h3_resolution_8.yaml"
+)
+
+OUTPUT_DIR = Path("/opt/dagster/output")
+
+H3_OUTPUT_FILE = "H3_output.parquet"
+SCHEMA_OUTPUT_FILE = "task1_schema_validation.json"
+VALIDATION_OUTPUT_FILE = "task1_h3_validation.json"
+METRICS_OUTPUT_FILE = "task1_h3_pipeline_metrics.json"
 
 
 @asset
@@ -16,79 +29,110 @@ def task1_h3():
 
     pipeline_start = time.perf_counter()
 
-    # =========================================================
-    # Configuration
-    # =========================================================
+    # ---------------------------------------------------------
+    # Confi
+    # ---------------------------------------------------------
 
-    # Docker path mapped to:
-    # C:\Projects\City of Cape Town\Project\ds_code_challenge\output
-    output_dir = Path("/opt/dagster/output")
-
-    output_dir.mkdir(
+    OUTPUT_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    metrics = PipelineMetrics(
-        output_dir=output_dir
-    )
-
     writer = ResultWriter(
-        output_dir=output_dir
+        output_dir=OUTPUT_DIR
     )
 
-    s3 = S3Client()
+    metrics = PipelineMetrics(
+        output_dir=OUTPUT_DIR
+    )
 
-    # =========================================================
-    # 1. Load service requests
-    # =========================================================
+    # ---------------------------------------------------------
+    # 1. Extract H3 resolution 8 data
+    # ---------------------------------------------------------
 
     start = metrics.start()
 
-    sr = s3.read_csv(
-        "sr.csv.gz"
+    extractor = H3Extractor()
+
+    features = extractor.extract_resolution_8(
+        SOURCE_KEY
     )
 
     metrics.record(
-        operation="load_service_requests",
+        operation="extract_h3_resolution_8",
         start_time=start,
-        records=len(sr),
+        records=len(features),
+        status="success",
     )
 
-    # =========================================================
-    # 2. Validate service request schema
-    # =========================================================
+    # ---------------------------------------------------------
+    # 2. Create H3 dataframe
+    # ---------------------------------------------------------
 
     start = metrics.start()
 
-    # schema_path = (
-    #     Path("/opt/dagster/config")
-    #     / "schemas"
-    #     / "service_request_schema.yaml"
-    # )
+    transformer = H3DataFrame()
 
-    schema_path = (
-    Path("/opt/dagster/config")
-    / "schemas"
-    / "service_request_schema.yaml")
+    h3_df = transformer.create(
+        features
+    )
+
+    metrics.record(
+        operation="create_h3_dataframe",
+        start_time=start,
+        records=len(h3_df),
+        status="success",
+    )
+
+    # ---------------------------------------------------------
+    # 3. H3 validation
+    # ---------------------------------------------------------
+
+    start = metrics.start()
+
+    h3_validator = H3Validator()
+
+    validated_h3_df = h3_validator.validate(
+        h3_df
+    )
+
+    metrics.record(
+        operation="validate_h3",
+        start_time=start,
+        records=len(validated_h3_df),
+        status="success",
+    )
+
+    # ---------------------------------------------------------
+    # 4. Schema validation
+    # ---------------------------------------------------------
+
+    start = metrics.start()
 
     schema_validator = SchemaValidator(
-        schema_path=schema_path
+        schema_path=SCHEMA_PATH
     )
 
     schema_result = schema_validator.validate(
-        sr
+        validated_h3_df
     )
+
+    # IMPORTANT:
+    # This file must appear on Windows as:
+    #
+    # C:\Projects\City of Cape Town\
+    # Project\ds_code_challenge\output\
+    # task1_schema_validation.json
 
     writer.write_json(
         schema_result,
-        "task1_schema_validation.json",
+        SCHEMA_OUTPUT_FILE,
     )
 
     metrics.record(
-        operation="validate_service_request_schema",
+        operation="validate_h3_schema",
         start_time=start,
-        records=len(sr),
+        records=len(validated_h3_df),
         status=(
             "success"
             if schema_result["passed"]
@@ -96,243 +140,66 @@ def task1_h3():
         ),
     )
 
+    # ---------------------------------------------------------
+    # 5. Stop if schema validation fails
+    # ---------------------------------------------------------
+
     if not schema_result["passed"]:
         raise ValueError(
-            "Service request schema validation failed."
+            "H3 resolution 8 schema validation failed. "
+            f"See {SCHEMA_OUTPUT_FILE}."
         )
 
-    # =========================================================
-    # 3. Assign H3
-    # =========================================================
+    # ---------------------------------------------------------
+    # 6. Write H3 output
+    # ---------------------------------------------------------
 
     start = metrics.start()
 
-    h3_assignment = H3Assignment(
-        resolution=8
-    )
-
-    result = h3_assignment.assign(
-        sr
-    )
-
-    metrics.record(
-        operation="assign_h3_resolution_8",
-        start_time=start,
-        records=len(result),
-    )
-
-    # =========================================================
-    # 4. Validate missing-coordinate behaviour
-    # =========================================================
-
-    start = metrics.start()
-
-    missing_coordinates = (
-        sr
-        .select(
-            (
-                pl.col("latitude").is_null()
-                |
-                pl.col("longitude").is_null()
-            )
-            .sum()
-            .alias("missing_coordinates")
-        )
-        .item()
-    )
-
-    zero_h3 = (
-        result
-        .filter(
-            pl.col("h3_level8_index") == "0"
-        )
-        .height
-    )
-
-    if missing_coordinates != zero_h3:
-        raise ValueError(
-            "H3 missing-coordinate validation failed: "
-            f"{missing_coordinates} records have missing "
-            f"coordinates but {zero_h3} records have H3 index 0."
-        )
-
-    metrics.record(
-        operation="validate_missing_coordinates",
-        start_time=start,
-        records=missing_coordinates,
-        status="success",
-    )
-
-    # =========================================================
-    # 5. Load sr_hex reference dataset
-    # =========================================================
-
-    start = metrics.start()
-
-    sr_hex = s3.read_csv(
-        "sr_hex.csv.gz"
-    )
-
-    metrics.record(
-        operation="load_sr_hex_reference",
-        start_time=start,
-        records=len(sr_hex),
-    )
-
-    # =========================================================
-    # 6. Validate row counts
-    # =========================================================
-
-    start = metrics.start()
-
-    if len(result) != len(sr_hex):
-        raise ValueError(
-            "Row count mismatch between generated "
-            "service requests and sr_hex reference: "
-            f"{len(result)} != {len(sr_hex)}"
-        )
-
-    metrics.record(
-        operation="validate_row_count",
-        start_time=start,
-        records=len(result),
-        status="success",
-    )
-
-    # =========================================================
-    # 7. Validate H3 against sr_hex
-    # =========================================================
-
-    start = metrics.start()
-
-    comparison = (
-        result
-        .select(
-            [
-                "notification_number",
-                "h3_level8_index",
-            ]
-        )
-        .join(
-            sr_hex.select(
-                [
-                    "notification_number",
-                    "h3_level8_index",
-                ]
-            ),
-            on="notification_number",
-            how="inner",
-            suffix="_reference",
-        )
-    )
-
-    comparison = comparison.with_columns(
-        (
-            pl.col("h3_level8_index")
-            ==
-            pl.col("h3_level8_index_reference")
-        )
-        .alias("h3_match")
-    )
-
-    total_compared = comparison.height
-
-    matching_records = (
-        comparison
-        .filter(
-            pl.col("h3_match")
-        )
-        .height
-    )
-
-    failed_records = (
-        total_compared
-        -
-        matching_records
-    )
-
-    join_error_rate = (
-        failed_records / total_compared
-        if total_compared
-        else 1.0
-    )
-
-    JOIN_ERROR_THRESHOLD = 0.05
-
-    metrics.record(
-        operation="validate_against_sr_hex",
-        start_time=start,
-        records=total_compared,
-        status=(
-            "success"
-            if join_error_rate <= JOIN_ERROR_THRESHOLD
-            else "failed"
-        ),
-    )
-
-    # =========================================================
-    # 8. Join-error threshold
-    # =========================================================
-
-    if join_error_rate > JOIN_ERROR_THRESHOLD:
-        raise ValueError(
-            "H3 join validation failed. "
-            f"Join error rate: {join_error_rate:.2%}. "
-            f"Allowed threshold: "
-            f"{JOIN_ERROR_THRESHOLD:.2%}."
-        )
-
-    # =========================================================
-    # 9. Write H3-enriched dataset
-    # =========================================================
-
-    start = metrics.start()
-
-    writer.write_dataframe(
-        result,
-        "H3_output.parquet",
+    output_path = writer.write_dataframe(
+        validated_h3_df,
+        H3_OUTPUT_FILE,
     )
 
     metrics.record(
         operation="write_h3_output",
         start_time=start,
-        records=len(result),
+        records=len(validated_h3_df),
         status="success",
     )
 
-    # =========================================================
-    # 10. Write validation summary
-    # =========================================================
+    # ---------------------------------------------------------
+    # 7. Validation summary
+    # ---------------------------------------------------------
 
     validation_result = {
         "pipeline": "city_pipeline",
-        "operation": "task1_h3",
+        "task": "task1_h3",
         "status": "success",
-        "records": len(result),
-        "missing_coordinate_records": (
-            missing_coordinates
+        "records": len(validated_h3_df),
+        "schema_score": schema_result.get(
+            "score"
         ),
-        "generated_zero_h3_records": (
-            zero_h3
+        "schema_passed_checks": schema_result.get(
+            "passed_checks"
         ),
-        "reference_records": len(sr_hex),
-        "records_compared": total_compared,
-        "matching_records": matching_records,
-        "failed_records": failed_records,
-        "join_error_rate": join_error_rate,
-        "join_error_threshold": (
-            JOIN_ERROR_THRESHOLD
+        "schema_total_checks": schema_result.get(
+            "total_checks"
+        ),
+        "h3_output": H3_OUTPUT_FILE,
+        "schema_validation_output": (
+            SCHEMA_OUTPUT_FILE
         ),
     }
 
     writer.write_json(
         validation_result,
-        "task1_h3_validation.json",
+        VALIDATION_OUTPUT_FILE,
     )
 
-    # =========================================================
-    # 11. Pipeline metrics
-    # =========================================================
+    # ---------------------------------------------------------
+    # 8. Pipeline metrics
+    # ---------------------------------------------------------
 
     pipeline_result = {
         "pipeline": "city_pipeline",
@@ -340,20 +207,30 @@ def task1_h3():
         "status": "success",
         "total_duration_seconds": round(
             time.perf_counter()
-            -
-            pipeline_start,
+            - pipeline_start,
             4,
         ),
+        "output_directory": str(
+            OUTPUT_DIR
+        ),
+        "outputs": {
+            "h3": H3_OUTPUT_FILE,
+            "schema_validation": (
+                SCHEMA_OUTPUT_FILE
+            ),
+            "validation": (
+                VALIDATION_OUTPUT_FILE
+            ),
+            "metrics": (
+                METRICS_OUTPUT_FILE
+            ),
+        },
         "steps": metrics.get_metrics(),
     }
 
     writer.write_json(
         pipeline_result,
-        "task1_h3_pipeline_metrics.json",
+        METRICS_OUTPUT_FILE,
     )
-
-    # =========================================================
-    # Final Dagster output
-    # =========================================================
 
     return pipeline_result
